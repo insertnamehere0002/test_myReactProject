@@ -1,16 +1,12 @@
 {
-  "name": "my-websites",
+  "name": "sakuya's-temporal-log",
+  "private": true,
   "version": "0.0.0",
-  "private": false,
   "type": "module",
-  "homepage": "https://insertnamehere0002.github.io/test_myReactProject/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "predeploy": "npm run build",      
-    "deploy": "gh-pages -d dist"       
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -19,9 +15,6 @@
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
-    "gh": "^2.8.9",
-    "gh-pages": "^6.3.0",
-    "pages": "^0.0.16",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

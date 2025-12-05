@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Website } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import WebsiteCard from './components/WebsiteCard';
@@ -27,7 +27,7 @@ const App: React.FC = () => {
     {
       id: '3',
       name: 'Steam',
-      url: 'https://store.steampowered.com/',
+      url: '/test_myReactProject/sakuya-temporal-log/',
       imageUrl: 'https://picsum.photos/seed/3/600/400',
       category: '게임',
     },
@@ -38,9 +38,17 @@ const App: React.FC = () => {
       imageUrl: 'https://picsum.photos/seed/4/600/400',
       category: '미술',
     }
+    ,
+    
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState('All');
+
+  const handleOpenEmbedded = (url: string) => {
+    // Serve from Vite's public folder
+    setEmbeddedUrl('/test_myReactProject/sakuya-temporal-log/');
+  };
 
   const handleAddWebsite = (name: string, url: string, category: string) => {
     const newWebsite: Website = {
@@ -64,6 +72,24 @@ const App: React.FC = () => {
 
     return (
     <div className="app-container">
+      {/* Embedded URL Modal */}
+      {embeddedUrl && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEmbeddedUrl(null)}>
+          <div className="bg-slate-900 rounded-lg w-full h-5/6 max-w-6xl relative shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setEmbeddedUrl(null)}
+              className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg z-10 transition-colors duration-200"
+            >
+              Close
+            </button>
+            <iframe
+              src={embeddedUrl}
+              title="Embedded Site"
+              className="w-full h-full rounded-lg border-none"
+            />
+          </div>
+        </div>
+      )}
       <AddWebsiteModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -106,7 +132,12 @@ const App: React.FC = () => {
           {filteredWebsites.length > 0 ? (
             <div className="website-grid">
               {filteredWebsites.map(website => (
-                <WebsiteCard key={website.id} website={website} onDelete={handleDeleteWebsite} />
+                <WebsiteCard
+                  key={website.id}
+                  website={website}
+                  onDelete={handleDeleteWebsite}
+                  onOpen={handleOpenEmbedded}
+                />
               ))}
             </div>
           ) : (
