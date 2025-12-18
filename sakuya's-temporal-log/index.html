@@ -119,5 +119,31 @@
   <body>
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
+    <!-- Inform parent window about internal link clicks so they can be
+         opened inside the same embedded modal instead of navigating top -->
+    <script>
+      (function () {
+        document.addEventListener('click', function (e) {
+          try {
+            const target = e.target;
+            const a = target.closest && target.closest('a');
+            if (!a) return;
+            const href = a.href;
+            if (!href) return;
+            const url = new URL(href, location.href);
+
+            // Only intercept same-origin navigations (internal links)
+            if (url.origin !== location.origin) return;
+
+            // Prevent default navigation and ask parent to update iframe src
+            e.preventDefault();
+            // send pathname+search+hash — parent will map to public path
+            window.parent.postMessage({ type: 'navigate', href: url.pathname + url.search + url.hash }, '*');
+          } catch (err) {
+            // ignore
+          }
+        }, true);
+      })();
+    </script>
 </body>
 </html>

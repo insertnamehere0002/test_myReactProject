@@ -45,6 +45,36 @@ const App: React.FC = () => {
   const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState('All');
 
+  // Listen for navigation messages from embedded iframe so internal links
+  // open inside the same modal instead of navigating the top window.
+  useEffect(() => {
+    const onMessage = (ev: MessageEvent) => {
+      const data = ev.data;
+      if (!data || data.type !== 'navigate') return;
+      const href: string = data.href;
+      if (!href) return;
+
+      // If iframe sends a full pathname, prefer that. Normalize to our
+      // Vite base so iframe stays served from public folder.
+      let target = href;
+      if (target.startsWith('/test_myReactProject/')) {
+        // already good
+      } else if (target.startsWith('/sakuya-temporal-log/')) {
+        target = '/test_myReactProject' + target;
+      } else if (target.startsWith('/')) {
+        target = '/test_myReactProject/sakuya-temporal-log' + target;
+      } else {
+        // relative path from inside embedded site — append to its base
+        target = '/test_myReactProject/sakuya-temporal-log/' + target;
+      }
+
+      setEmbeddedUrl(target);
+    };
+
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   const handleOpenEmbedded = (url: string) => {
     // Serve from Vite's public folder
     setEmbeddedUrl('/test_myReactProject/sakuya-temporal-log/');
