@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Website } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import WebsiteCard from './components/WebsiteCard';
@@ -27,7 +27,7 @@ const App: React.FC = () => {
     {
       id: '3',
       name: 'Steam',
-      url: '/test_myReactProject/sakuya-temporal-log/',
+      url: 'https://store.steampowered.com/',
       imageUrl: 'https://picsum.photos/seed/3/600/400',
       category: '게임',
     },
@@ -42,107 +42,15 @@ const App: React.FC = () => {
     
   ]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState('All');
 
-  // Listen for navigation messages from embedded iframe so internal links
-  // open inside the same modal instead of navigating the top window.
-  useEffect(() => {
-    const onMessage = (ev: MessageEvent) => {
-      const data = ev.data;
-      if (!data || data.type !== 'navigate') return;
-      const href: string = data.href;
-      if (!href) return;
+  // (Removed) iframe postMessage listener and embedded navigation handling
 
-      // If iframe sends a full pathname, prefer that. Normalize to our
-      // Vite base so iframe stays served from public folder.
-      let target = href;
-      if (target.startsWith('/test_myReactProject/')) {
-        // already good
-      } else if (target.startsWith('/sakuya-temporal-log/')) {
-        target = '/test_myReactProject' + target;
-      } else if (target.startsWith('/')) {
-        target = '/test_myReactProject/sakuya-temporal-log' + target;
-      } else {
-        // relative path from inside embedded site — append to its base
-        target = '/test_myReactProject/sakuya-temporal-log/' + target;
-      }
-
-      setEmbeddedUrl(target);
-    };
-
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, []);
-
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-
-  // When iframe loads, attach a delegated click handler inside the iframe
-  // document so clicks on internal links open inside the modal (same iframe)
-  const attachIframeInterceptor = () => {
-    try {
-      const iframe = iframeRef.current;
-      if (!iframe) return;
-      const doc = iframe.contentDocument;
-      if (!doc) return;
-
-      const handler = (e: Event) => {
-        try {
-          const target = (e.target as Element);
-          const a = (target && (target as any).closest) ? (target as any).closest('a') : null;
-          if (!a) return;
-          const href = (a as HTMLAnchorElement).href;
-          if (!href) return;
-          const url = new URL(href, doc.baseURI);
-          if (url.origin !== window.location.origin) return; // external
-          e.preventDefault();
-
-          // send the pathname+search+hash to parent handler logic by
-          // calling the same normalization we use for postMessage.
-          const path = url.pathname + url.search + url.hash;
-          let targetPath = path;
-          if (targetPath.startsWith('/test_myReactProject/')) {
-            // already good
-          } else if (targetPath.startsWith('/sakuya-temporal-log/')) {
-            targetPath = '/test_myReactProject' + targetPath;
-          } else if (targetPath.startsWith('/')) {
-            targetPath = '/test_myReactProject/sakuya-temporal-log' + targetPath;
-          } else {
-            targetPath = '/test_myReactProject/sakuya-temporal-log/' + targetPath;
-          }
-
-          setEmbeddedUrl(targetPath);
-        } catch (err) {
-          /* ignore */
-        }
-      };
-
-      // store handler for later cleanup
-      (iframe as any).__clickInterceptor = handler;
-      doc.addEventListener('click', handler, true);
-    } catch (err) {
-      // cross-origin or not ready — ignore
-    }
-  };
-
-  // cleanup interceptor when modal closes
-  useEffect(() => {
-    if (embeddedUrl) return; // only cleanup when closed
-    try {
-      const iframe = iframeRef.current;
-      if (!iframe) return;
-      const handler = (iframe as any).__clickInterceptor;
-      const doc = iframe.contentDocument;
-      if (doc && handler) doc.removeEventListener('click', handler, true);
-      delete (iframe as any).__clickInterceptor;
-    } catch (err) {
-      // ignore
-    }
-  }, [embeddedUrl]);
+  // (Removed) iframe DOM interception logic
 
   const handleOpenEmbedded = (url: string) => {
-    // Serve from Vite's public folder
-    setEmbeddedUrl('/test_myReactProject/sakuya-temporal-log/');
+    // Open external URL in a new tab (sakuya site removed)
+    window.open(url, '_blank', 'noopener');
   };
 
   const handleAddWebsite = (name: string, url: string, category: string) => {
