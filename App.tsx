@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Website } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import WebsiteCard from './components/WebsiteCard';
@@ -75,6 +75,71 @@ const App: React.FC = () => {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  // When iframe loads, attach a delegated click handler inside the iframe
+  // document so clicks on internal links open inside the modal (same iframe)
+  const attachIframeInterceptor = () => {
+    try {
+      const iframe = iframeRef.current;
+      if (!iframe) return;
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+
+      const handler = (e: Event) => {
+        try {
+          const target = (e.target as Element);
+          const a = (target && (target as any).closest) ? (target as any).closest('a') : null;
+          if (!a) return;
+          const href = (a as HTMLAnchorElement).href;
+          if (!href) return;
+          const url = new URL(href, doc.baseURI);
+          if (url.origin !== window.location.origin) return; // external
+          e.preventDefault();
+
+          // send the pathname+search+hash to parent handler logic by
+          // calling the same normalization we use for postMessage.
+          const path = url.pathname + url.search + url.hash;
+          let targetPath = path;
+          if (targetPath.startsWith('/test_myReactProject/')) {
+            // already good
+          } else if (targetPath.startsWith('/sakuya-temporal-log/')) {
+            targetPath = '/test_myReactProject' + targetPath;
+          } else if (targetPath.startsWith('/')) {
+            targetPath = '/test_myReactProject/sakuya-temporal-log' + targetPath;
+          } else {
+            targetPath = '/test_myReactProject/sakuya-temporal-log/' + targetPath;
+          }
+
+          setEmbeddedUrl(targetPath);
+        } catch (err) {
+          /* ignore */
+        }
+      };
+
+      // store handler for later cleanup
+      (iframe as any).__clickInterceptor = handler;
+      doc.addEventListener('click', handler, true);
+    } catch (err) {
+      // cross-origin or not ready — ignore
+    }
+  };
+
+  // cleanup interceptor when modal closes
+  useEffect(() => {
+    if (embeddedUrl) return; // only cleanup when closed
+    try {
+      const iframe = iframeRef.current;
+      if (!iframe) return;
+      const handler = (iframe as any).__clickInterceptor;
+      const doc = iframe.contentDocument;
+      if (doc && handler) doc.removeEventListener('click', handler, true);
+      delete (iframe as any).__clickInterceptor;
+    } catch (err) {
+      // ignore
+    }
+  }, [embeddedUrl]);
+
   const handleOpenEmbedded = (url: string) => {
     // Serve from Vite's public folder
     setEmbeddedUrl('/test_myReactProject/sakuya-temporal-log/');
@@ -113,6 +178,8 @@ const App: React.FC = () => {
               Close
             </button>
             <iframe
+              ref={iframeRef}
+              onLoad={attachIframeInterceptor}
               src={embeddedUrl}
               title="Embedded Site"
               className="w-full h-full rounded-lg border-none"
